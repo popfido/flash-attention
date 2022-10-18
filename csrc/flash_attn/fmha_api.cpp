@@ -609,7 +609,7 @@ mha_fwd_block(const at::Tensor &q,         // total_q x num_heads x head_size, t
     TORCH_CHECK(q.stride(-1) == 1);
     TORCH_CHECK(k.stride(-1) == 1);
     TORCH_CHECK(v.stride(-1) == 1);
-    TORCH_CHECK(cu_seqlens_k.is_contiguous());
+    TORCH_CHECK(cu_seqlens_q.is_contiguous());
     TORCH_CHECK(cu_seqlens_k.is_contiguous());
     TORCH_CHECK(blockmask.is_contiguous())
 
