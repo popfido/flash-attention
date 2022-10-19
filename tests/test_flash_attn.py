@@ -8,6 +8,8 @@ import pytest
 from einops import rearrange, repeat
 
 from flash_attn.flash_attn_interface import flash_attn_func, flash_attn_unpadded_qkvpacked_func, _get_block_size, flash_attn_unpadded_kvpacked_func, flash_attn_unpadded_func, flash_attn_unpadded_qkvpacked_split_func
+from flash_attn.flash_attn_interface import flash_attn_func, flash_attn_unpadded_qkvpacked_func, _get_block_size, flash_attn_unpadded_kvpacked_func, flash_attn_unpadded_func
+from flash_attn.flash_attn_interface import flash_attn_unpadded_qkvpacked_split_func
 from flash_attn.bert_padding import unpad_input, pad_input, index_first_axis
 
 
@@ -25,11 +27,11 @@ def generate_random_padding_mask(max_seqlen, batch_size, device, mode='random'):
     elif mode == 'third':
         lengths = torch.randint(max_seqlen // 3, max_seqlen + 1, (batch_size, 1), device=device)
     elif mode == 'split':
-         lengths0 = torch.randint(min(128, max_seqlen), max_seqlen + 1,
-                                  (batch_size // 4 * 3, 1), device=device)
-         lengths1 = torch.randint(min(max(1, max_seqlen - 20), 128), min(max_seqlen, 128) + 1,
-                                  (batch_size - batch_size // 4 * 3, 1), device=device)
-         lengths = torch.cat([lengths0, lengths1], dim=0)
+        lengths0 = torch.randint(min(128, max_seqlen), max_seqlen + 1,
+                                 (batch_size // 4 * 3, 1), device=device)
+        lengths1 = torch.randint(min(max(1, max_seqlen - 20), 128), min(max_seqlen, 128) + 1,
+                                 (batch_size - batch_size // 4 * 3, 1), device=device)
+        lengths = torch.cat([lengths0, lengths1], dim=0)
     padding_mask = repeat(torch.arange(max_seqlen, device=device), 's -> b s', b=batch_size) < lengths
     return padding_mask
 
@@ -663,12 +665,12 @@ def test_flash_attn_unpadded_qkvpacked_split(seqlen, d, dropout_p, causal, dtype
     dropout_mask = S_dmask_converted >= 0
     attn_unnorm = S_dmask_converted.abs()
     attn = normalize_flash_attn_S(attn_unnorm, qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2],
-                                   key_padding_mask, key_padding_mask, dropout_p > 0.0, causal=causal)
+                                  key_padding_mask, key_padding_mask, dropout_p > 0.0, causal=causal)
     dropout_fraction = get_dropout_fraction(dropout_mask, key_padding_mask, key_padding_mask,
                                             causal=causal).item()
 
     output_ref, attn_ref = attention_qkvpacked_ref(qkv, key_padding_mask, dropout_p, dropout_mask,
-                                                    causal=causal)
+                                                   causal=causal)
     output_pt, attn_pt = attention_qkvpacked_ref(qkv, key_padding_mask, dropout_p, dropout_mask,
                                                  causal=causal, upcast=False, reorder_ops=True)
     print(f'Actual dropout fraction: {dropout_fraction}')
@@ -772,6 +774,7 @@ def test_flash_attn_race_condition(seqlen, d, dropout_p, causal, dtype):
             assert torch.equal(dq_unpad, dq_unpad_0)
             assert torch.equal(dk_unpad, dk_unpad_0)
             assert torch.equal(dv_unpad, dv_unpad_0)
+
 
 @pytest.mark.skipif(torch.cuda.device_count() < 2, reason='requires multiple GPUs')
 def test_flash_attn_multigpu():

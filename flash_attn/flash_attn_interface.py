@@ -16,6 +16,12 @@ def _get_block_size(device, head_dim, is_dropout):
 
 
 def _flash_attn_forward(q, k, v, out, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, attn_mask, attn_bias, 
+                        dropout_p, softmax_scale, causal, return_softmax, generator=None):
+    softmax_lse, *rest = flash_attn_cuda.fwd(
+            q, k, v, out, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, dropout_p, 
+            softmax_scale, False, causal, return_softmax, generator, attn_mask, attn_bias
+        )
+def _flash_attn_forward(q, k, v, out, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, attn_mask, attn_bias, 
                          dropout_p, softmax_scale, causal, return_softmax, generator=None):
     softmax_lse, *rest = flash_attn_cuda.fwd(
              q, k, v, out, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, dropout_p, 
@@ -327,6 +333,10 @@ def flash_attn_unpadded_func(q, k, v, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, 
     return FlashAttnFunc.apply(q, k, v, cu_seqlens_q, cu_seqlens_k, max_seqlen_q, max_seqlen_k, attn_mask, attn_bias,
                                dropout_p, softmax_scale, causal, return_attn_probs)
 
+
+    have one kernel dealing with seqlen <= 128 and one kernel for seqlen > 128.
+
+    dropout_p should be set to 0.0 during evaluation.
 
 def flash_attn_unpadded_qkvpacked_split_func(
         qkv, cu_seqlens, max_seqlen0, max_seqlen1, batch_size0, dropout_p, softmax_scale=None,

@@ -151,7 +151,6 @@ void set_params_dgrad(FMHA_dgrad_params &params,
                       at::Tensor dv,
                       void *cu_seqlens_q_d,
                       void *cu_seqlens_k_d,
-                      void *o_packed_d,
                       void *dq_tmp_d,
                       void *do_packed_d,
                       void *softmax_lse_d,
@@ -171,7 +170,6 @@ void set_params_dgrad(FMHA_dgrad_params &params,
                      q, k, v, out,
                      cu_seqlens_q_d,
                      cu_seqlens_k_d,
-                     o_packed_d,
                      dq_tmp_d,  // Reusing the o_tmp_ptr variable to store dq_tmp
                      nullptr,
                      softmax_lse_d,
@@ -205,7 +203,7 @@ std::vector<at::Tensor>
 mha_fwd(const at::Tensor &q,         // total_q x num_heads x head_size, total_q := \sum_{i=0}^{b} s_i
         const at::Tensor &k,         // total_k x num_heads x head_size, total_k := \sum_{i=0}^{b} s_i
         const at::Tensor &v,         // total_k x num_heads x head_size, total_k := \sum_{i=0}^{b} s_i
-        at::Tensor &out, // total_q x num_heads x head_size, total_k := \sum_{i=0}^{b} s_i
+        at::Tensor &out,             // total_q x num_heads x head_size, total_k := \sum_{i=0}^{b} s_i
         const at::Tensor &cu_seqlens_q,  // b+1
         const at::Tensor &cu_seqlens_k,  // b+1
         const int max_seqlen_q_,
@@ -340,7 +338,6 @@ mha_fwd(const at::Tensor &q,         // total_q x num_heads x head_size, total_q
                      q, k, v, out,
                      cu_seqlens_q.data_ptr(),
                      cu_seqlens_k.data_ptr(),
-                     o.data_ptr(),
                      loop ? o_tmp.data_ptr() : nullptr,
                      return_softmax ? s.data_ptr() : nullptr,
                      softmax_lse.data_ptr(),
@@ -537,7 +534,6 @@ mha_bwd(const at::Tensor &dout,  // total_q x num_heads, x head_size
                      dq, dk, dv,
                      cu_seqlens_q.data_ptr(),
                      cu_seqlens_k.data_ptr(),
-                     out.data_ptr(),
                      loop ? dq_tmp.data_ptr() : nullptr,
                      dout.data_ptr(),
                      softmax_lse.data_ptr(),
@@ -675,7 +671,6 @@ mha_fwd_block(const at::Tensor &q,         // total_q x num_heads x head_size, t
                      q, k, v, o,
                      cu_seqlens_q.data_ptr(),
                      cu_seqlens_k.data_ptr(),
-                     o.data_ptr(),
                      loop ? o_tmp.data_ptr() : nullptr,
                      return_softmax ? s.data_ptr() : nullptr,
                      softmax_lse.data_ptr(),
@@ -827,7 +822,6 @@ mha_bwd_block(const at::Tensor &dout,  // total x num_heads, x head_size
                      dq, dk, dv,
                      cu_seqlens_q.data_ptr(),
                      cu_seqlens_k.data_ptr(),
-                     out.data_ptr(),
                      loop ? dq_tmp.data_ptr() : nullptr,
                      dout.data_ptr(),
                      softmax_lse.data_ptr(),
